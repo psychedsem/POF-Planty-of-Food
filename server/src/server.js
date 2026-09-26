@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { getPlantBasedRecipes } from "./services/spoonacularService.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,12 +10,31 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Endpoint di controllo
+// Controllo dello stato dell'API
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    message: "POF API is running",
+    message: "API POF attiva",
   });
+});
+
+// Recupero delle ricette plant-based
+app.get("/api/recipes", async (req, res) => {
+  try {
+    const recipes = await getPlantBasedRecipes();
+
+    res.json({
+      status: "ok",
+      recipes,
+    });
+  } catch (error) {
+    console.error("Errore Spoonacular:", error.message);
+
+    res.status(500).json({
+      status: "error",
+      message: "Impossibile recuperare le ricette",
+    });
+  }
 });
 
 // Avvio del server
