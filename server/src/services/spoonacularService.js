@@ -1,5 +1,46 @@
 const SPOONACULAR_URL = "https://api.spoonacular.com";
 
+function cleanText(text = "") {
+  return text
+    .replace(/<[^>]*>/g, "")
+    .replace(/([.!?])(?=[A-Z])/g, "$1 ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanSummary(summary = "") {
+  return cleanText(summary)
+    .replace(/\s*Try .*? for similar recipes\.\s*$/i, "")
+    .replace(/\s*Users who liked this recipe also liked .*?\.\s*$/i, "")
+    .trim();
+}
+
+function normalizeRecipe(recipe) {
+  const tags = [
+    ...(recipe.diets || []),
+    ...(recipe.dishTypes || []),
+    ...(recipe.cuisines || []),
+  ];
+
+  return {
+    id: recipe.id,
+    title: recipe.title,
+    sourceUrl: recipe.sourceUrl,
+    summary: cleanSummary(recipe.summary),
+    ingredients:
+      recipe.extendedIngredients?.map((ingredient) =>
+        cleanText(ingredient.original)
+      ) || [],
+    instructions:
+      recipe.analyzedInstructions?.flatMap((section) =>
+        section.steps.map((step) => cleanText(step.step))
+      ) || [],
+    tags: [...new Set(tags)],
+    readyInMinutes: recipe.readyInMinutes,
+    servings: recipe.servings,
+  };
+}
+
 export async function getPlantBasedRecipes(limit = 3) {
   const apiKey = process.env.SPOONACULAR_API_KEY;
 
@@ -53,5 +94,7 @@ export async function getPlantBasedRecipes(limit = 3) {
     throw new Error(`Errore Spoonacular: ${detailsResponse.status}`);
   }
 
-  return detailsResponse.json();
+  const recipes = await detailsResponse.json();
+
+  return recipes.map(normalizeRecipe);
 }
