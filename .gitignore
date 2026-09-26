@@ -21,3 +21,6 @@ npm-debug.log*
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Local recipe cache
+server/data/recipes.json
