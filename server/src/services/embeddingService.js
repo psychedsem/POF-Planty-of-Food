@@ -4,30 +4,28 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const EMBEDDING_MODEL = "gemini-embedding-2";
-const EMBEDDING_DIMENSION = 768;
+const DIMENSION = 768;
 
-async function createEmbedding(content) {
+async function createEmbedding(text) {
   const response = await ai.models.embedContent({
-    model: EMBEDDING_MODEL,
-    contents: content,
+    model: "gemini-embedding-2",
+    contents: text,
     config: {
-      outputDimensionality: EMBEDDING_DIMENSION,
+      outputDimensionality: DIMENSION,
     },
   });
 
-  const embedding = response.embeddings?.[0]?.values;
+  const values = response.embeddings?.[0]?.values;
 
-  if (!embedding || embedding.length !== EMBEDDING_DIMENSION) {
+  if (values?.length !== DIMENSION) {
     throw new Error("Embedding non valido");
   }
 
-  return embedding;
+  return values;
 }
 
-// Prepara la ricetta per la ricerca semantica
-function buildRecipeDocument(recipe) {
-  const content = [
+export function createRecipeEmbedding(recipe) {
+  const text = [
     `Descrizione: ${recipe.summary}`,
     `Caratteristica: ${recipe.characteristicPhrase}`,
     `Ingredienti: ${recipe.ingredients.join(", ")}`,
@@ -37,11 +35,7 @@ function buildRecipeDocument(recipe) {
     `Porzioni: ${recipe.servings}`,
   ].join(" | ");
 
-  return `title: ${recipe.title} | text: ${content}`;
-}
-
-export function createRecipeEmbedding(recipe) {
-  return createEmbedding(buildRecipeDocument(recipe));
+  return createEmbedding(`title: ${recipe.title} | text: ${text}`);
 }
 
 export function createQueryEmbedding(query) {
