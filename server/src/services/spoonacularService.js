@@ -15,6 +15,13 @@ function cleanSummary(summary = "") {
     .trim();
 }
 
+function normalizeIngredientUnits(text = "") {
+  return text
+    .replace(/(\d+)\s*T\b/g, "$1 tablespoon")
+    .replace(/(\d+)\s*t\b/g, "$1 teaspoon")
+    .replace(/(\d+(?:-\d+)?)\s*c\b/g, "$1 cups");
+}
+
 function normalizeRecipe(recipe) {
   const tags = [
     ...(recipe.diets || []),
@@ -29,7 +36,7 @@ function normalizeRecipe(recipe) {
     summary: cleanSummary(recipe.summary),
     ingredients:
       recipe.extendedIngredients?.map((ingredient) =>
-        cleanText(ingredient.original)
+        cleanText(normalizeIngredientUnits(ingredient.original))
       ) || [],
     instructions:
       recipe.analyzedInstructions?.flatMap((section) =>

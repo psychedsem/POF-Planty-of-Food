@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { getPlantBasedRecipes } from "./services/spoonacularService.js";
+import { prepareRecipesForRag } from "./services/geminiService.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +34,26 @@ app.get("/api/recipes", async (req, res) => {
     res.status(500).json({
       status: "error",
       message: "Impossibile recuperare le ricette",
+    });
+  }
+});
+
+// Preparazione delle ricette per il RAG
+app.get("/api/recipes/processed", async (req, res) => {
+  try {
+    const recipes = await getPlantBasedRecipes();
+    const processedRecipes = await prepareRecipesForRag(recipes);
+
+    res.json({
+      status: "ok",
+      recipes: processedRecipes,
+    });
+  } catch (error) {
+    console.error("Errore elaborazione ricette:", error.message);
+
+    res.status(500).json({
+      status: "error",
+      message: "Impossibile elaborare le ricette",
     });
   }
 });
