@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import recipeRoutes from "./routes/recipeRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,9 @@ app.get("/api/health", (req, res) => {
 
 // Route delle ricette
 app.use("/api/recipes", recipeRoutes);
+
+// Chat con memoria persistente
+app.use("/api/chat", chatRoutes);
 
 // Avvio del server
 app.listen(PORT, "0.0.0.0", () => {
