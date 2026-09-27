@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -8,22 +8,22 @@ const PRIMARY_MODEL = "gemini-3.8-flash";
 const FALLBACK_MODEL = "gemini-3.5-flash-lite";
 
 const recipeSchema = {
-  type: "array",
+  type: Type.ARRAY,
   items: {
-    type: "object",
+    type: Type.OBJECT,
     properties: {
-      id: { type: "integer" },
-      title: { type: "string" },
-      summary: { type: "string" },
+      id: { type: Type.INTEGER },
+      title: { type: Type.STRING },
+      summary: { type: Type.STRING },
       ingredients: {
-        type: "array",
-        items: { type: "string" },
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
       },
       instructions: {
-        type: "array",
-        items: { type: "string" },
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
       },
-      characteristicPhrase: { type: "string" },
+      characteristicPhrase: { type: Type.STRING },
     },
     required: [
       "id",
@@ -62,25 +62,45 @@ Regole:
 - characteristicPhrase deve essere una breve frase in italiano utile alla ricerca semantica.
 - La characteristicPhrase deve basarsi esclusivamente sui dati della ricetta ricevuta.
 - Non inventare ingredienti, quantità, proprietà o informazioni assenti dai dati sorgente.
-`.trim();
+`;
 
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const tagTranslations = {
+  "dairy free": "senza latticini",
+  "gluten free": "senza glutine",
+  paleolithic: "paleo",
+  "lacto ovo vegetarian": "latto-ovo vegetariano",
+  primal: "primal",
+  vegan: "vegano",
+  antipasti: "antipasti",
+  soup: "zuppa",
+  starter: "antipasto",
+  snack: "snack",
+  appetizer: "antipasto",
+  antipasto: "antipasto",
+  "hor d'oeuvre": "antipasto",
+  "side dish": "contorno",
+  "whole 30": "whole30",
+  lunch: "pranzo",
+  "main course": "piatto principale",
+  "main dish": "piatto principale",
+  dinner: "cena",
+  Cajun: "cajun",
+  Creole: "creolo",
+};
 
-function isUnavailable(error) {
-  const message = String(error?.message || error);
+function hasError(error, code, label) {
+  const message = error?.message || "";
 
   return (
-    error?.status === 503 ||
-    error?.code === 503 ||
-    message.includes('"code":503') ||
-    message.includes("UNAVAILABLE")
+    error?.status === code ||
+    error?.code === code ||
+    message.includes(String(code)) ||
+    message.includes(label)
   );
 }
 
 async function generateRecipes(recipes, model) {
-  return ai.models.generateContent({
+  const response = await ai.models.generateContent({
     model,
     contents: JSON.stringify(recipes),
     config: {
@@ -90,67 +110,46 @@ async function generateRecipes(recipes, model) {
       temperature: 0,
     },
   });
+
+  return JSON.parse(response.text);
 }
 
 async function generateWithRetry(recipes) {
-  const delays = [1000, 2000, 4000];
-  let lastError;
-
-  for (let attempt = 0; attempt <= delays.length; attempt++) {
+  for (const delay of [1000, 2000, 4000]) {
     try {
       return await generateRecipes(recipes, PRIMARY_MODEL);
     } catch (error) {
-      lastError = error;
+      if (hasError(error, 429, "RESOURCE_EXHAUSTED")) {
+        console.warn(
+          `Quota ${PRIMARY_MODEL} esaurita, uso ${FALLBACK_MODEL}...`
+        );
 
-      if (!isUnavailable(error) || attempt === delays.length) {
-        break;
+        return generateRecipes(recipes, FALLBACK_MODEL);
       }
 
-      console.log(
-        `Gemini non disponibile, nuovo tentativo tra ${
-          delays[attempt] / 1000
-        }s...`
+      if (!hasError(error, 503, "UNAVAILABLE")) {
+        throw error;
+      }
+
+      console.warn(
+        `Gemini non disponibile, nuovo tentativo tra ${delay / 1000}s...`
       );
 
-      await wait(delays[attempt]);
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
-  if (!isUnavailable(lastError)) {
-    throw lastError;
-  }
-
-  console.log(`Provo il modello alternativo ${FALLBACK_MODEL}...`);
+  console.warn(
+    `${PRIMARY_MODEL} ancora non disponibile, uso ${FALLBACK_MODEL}...`
+  );
 
   return generateRecipes(recipes, FALLBACK_MODEL);
 }
 
-function translateTags(tags) {
-  const translations = {
-    "dairy free": "senza latticini",
-    "gluten free": "senza glutine",
-    paleolithic: "paleo",
-    "lacto ovo vegetarian": "latto-ovo vegetariano",
-    primal: "primal",
-    vegan: "vegano",
-    antipasti: "antipasti",
-    soup: "zuppa",
-    starter: "antipasto",
-    snack: "snack",
-    appetizer: "antipasto",
-    antipasto: "antipasto",
-    "hor d'oeuvre": "antipasto",
-    "side dish": "contorno",
-    "whole 30": "whole30",
-    lunch: "pranzo",
-    "main course": "piatto principale",
-    "main dish": "piatto principale",
-    dinner: "cena",
-    Cajun: "cajun",
-    Creole: "creolo",
-  };
-
-  return [...new Set(tags.map((tag) => translations[tag] || tag))];
+function translateTags(tags = []) {
+  return [
+    ...new Set(tags.map((tag) => tagTranslations[tag] || tag)),
+  ];
 }
 
 function getNumbers(text) {
@@ -158,8 +157,11 @@ function getNumbers(text) {
 }
 
 function validateRecipes(originalRecipes, processedRecipes) {
-  if (processedRecipes.length !== originalRecipes.length) {
-    throw new Error("Gemini ha modificato il numero delle ricette");
+  if (
+    !Array.isArray(processedRecipes) ||
+    processedRecipes.length !== originalRecipes.length
+  ) {
+    throw new Error("Numero di ricette elaborato non valido");
   }
 
   for (const original of originalRecipes) {
@@ -172,27 +174,23 @@ function validateRecipes(originalRecipes, processedRecipes) {
     }
 
     if (processed.ingredients.length !== original.ingredients.length) {
-      throw new Error(`Ingredienti modificati nella ricetta ${original.id}`);
-    }
-
-    for (let i = 0; i < original.ingredients.length; i++) {
-      const originalNumbers = getNumbers(original.ingredients[i]);
-      const processedNumbers = getNumbers(processed.ingredients[i]);
-
-      if (
-        JSON.stringify(originalNumbers) !== JSON.stringify(processedNumbers)
-      ) {
-        throw new Error(
-          `Quantità modificata nella ricetta ${original.id}, ingrediente ${
-            i + 1
-          }`
-        );
-      }
+      throw new Error(`Ingredienti alterati nella ricetta ${original.id}`);
     }
 
     if (processed.instructions.length !== original.instructions.length) {
-      throw new Error(`Istruzioni modificate nella ricetta ${original.id}`);
+      throw new Error(`Istruzioni alterate nella ricetta ${original.id}`);
     }
+
+    original.ingredients.forEach((ingredient, index) => {
+      const before = getNumbers(ingredient);
+      const after = getNumbers(processed.ingredients[index]);
+
+      if (JSON.stringify(before) !== JSON.stringify(after)) {
+        throw new Error(
+          `Quantità alterata nell'ingrediente ${index + 1} della ricetta ${original.id}`
+        );
+      }
+    });
   }
 }
 
@@ -201,27 +199,19 @@ export async function prepareRecipesForRag(recipes) {
     throw new Error("GEMINI_API_KEY non configurata");
   }
 
-  const response = await generateWithRetry(recipes);
-  const processedRecipes = JSON.parse(response.text);
+  const processedRecipes = await generateWithRetry(recipes);
 
   validateRecipes(recipes, processedRecipes);
 
   return processedRecipes.map((recipe) => {
-    const originalRecipe = recipes.find(
-      (original) => original.id === recipe.id
-    );
+    const original = recipes.find((item) => item.id === recipe.id);
 
     return {
-      id: recipe.id,
-      title: recipe.title,
-      sourceUrl: originalRecipe.sourceUrl,
-      summary: recipe.summary,
-      ingredients: recipe.ingredients,
-      instructions: recipe.instructions,
-      tags: translateTags(originalRecipe.tags),
-      characteristicPhrase: recipe.characteristicPhrase,
-      readyInMinutes: originalRecipe.readyInMinutes,
-      servings: originalRecipe.servings,
+      ...recipe,
+      sourceUrl: original.sourceUrl,
+      tags: translateTags(original.tags),
+      readyInMinutes: original.readyInMinutes,
+      servings: original.servings,
     };
   });
 }
