@@ -15,21 +15,22 @@ export async function chat(req, res) {
   }
 
   try {
+    const userMessage = message.trim();
     const history = await getMessages(conversationId);
 
     const result = await recipeAgent.invoke({
       messages: [
         ...history,
-        { role: "user", content: message.trim() },
+        { role: "user", content: userMessage },
       ],
     });
 
     const reply = result.messages.at(-1).content;
 
-    await saveMessage(conversationId, "user", message.trim());
+    await saveMessage(conversationId, "user", userMessage);
     await saveMessage(conversationId, "assistant", reply);
 
-    res.json({
+    return res.json({
       status: "ok",
       conversationId,
       reply,
@@ -37,7 +38,7 @@ export async function chat(req, res) {
   } catch (error) {
     console.error("Errore chat:", error.message);
 
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
       message: "Impossibile elaborare il messaggio",
     });

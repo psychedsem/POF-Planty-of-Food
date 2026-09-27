@@ -1,10 +1,11 @@
 import { createAgent } from "langchain";
-import { ChatGoogle } from "@langchain/google";
+import { ChatGroq } from "@langchain/groq";
 import { recipeSearchTool } from "../tools/recipeSearchTool.js";
 
-const model = new ChatGoogle({
-  model: "gemini-3.5-flash",
-  apiKey: process.env.GEMINI_API_KEY,
+const model = new ChatGroq({
+  model: "qwen/qwen3.8-27b",
+  apiKey: process.env.GROQ_API_KEY,
+  temperature: 0,
 });
 
 const systemPrompt = `
