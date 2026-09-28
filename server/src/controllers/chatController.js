@@ -1,4 +1,4 @@
-import { recipeAgent } from "../agents/recipeAgent.js";
+import { invokeRecipeAgent } from "../agents/recipeAgent.js";
 import {
   getMessages,
   saveMessage,
@@ -18,12 +18,10 @@ export async function chat(req, res) {
     const userMessage = message.trim();
     const history = await getMessages(conversationId);
 
-    const result = await recipeAgent.invoke({
-      messages: [
-        ...history,
-        { role: "user", content: userMessage },
-      ],
-    });
+    const result = await invokeRecipeAgent([
+      ...history,
+      { role: "user", content: userMessage },
+    ]);
 
     const reply = result.messages.at(-1).content;
 
