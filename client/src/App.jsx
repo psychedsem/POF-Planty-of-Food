@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ChatComposer from "./components/ChatComposer.jsx";
 import ChatHeader from "./components/ChatHeader.jsx";
-import {
-  ChatMessage,
-  TypingMessage,
-} from "./components/ChatMessage.jsx";
+import { ChatMessage, TypingMessage } from "./components/ChatMessage.jsx";
 import { sendChatMessage } from "./services/chatApi.js";
 import {
   createConversationId,
@@ -17,40 +14,27 @@ import {
 import "./App.css";
 
 function App() {
-  const [conversationId, setConversationId] = useState(
-    loadConversationId
-  );
+  const [conversationId, setConversationId] = useState(loadConversationId);
   const [messages, setMessages] = useState(loadMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     saveMessages(messages);
-
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   async function handleSubmit(event) {
     event.preventDefault();
 
     const message = input.trim();
-
-    if (!message || isLoading) {
-      return;
-    }
+    if (!message || isLoading) return;
 
     setMessages((current) => [
       ...current,
-      {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: message,
-      },
+      { id: crypto.randomUUID(), role: "user", content: message },
     ]);
 
     setInput("");
@@ -58,25 +42,15 @@ function App() {
     setIsLoading(true);
 
     try {
-      const reply = await sendChatMessage(
-        conversationId,
-        message
-      );
+      const reply = await sendChatMessage(conversationId, message);
 
       setMessages((current) => [
         ...current,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: reply,
-        },
+        { id: crypto.randomUUID(), role: "assistant", content: reply },
       ]);
     } catch (requestError) {
       console.error("Errore chat:", requestError);
-
-      setError(
-        "Non riesco a contattare l'assistente. Riprova tra qualche istante."
-      );
+      setError("Non riesco a contattare l'assistente. Riprova tra qualche istante.");
     } finally {
       setIsLoading(false);
     }
@@ -95,20 +69,14 @@ function App() {
   return (
     <main className="app">
       <section className="chat">
-        <ChatHeader
-          onNewConversation={startNewConversation}
-        />
+        <ChatHeader onNewConversation={startNewConversation} />
 
         <div className="messages">
           {messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              message={message}
-            />
+            <ChatMessage key={message.id} message={message} />
           ))}
 
           {isLoading && <TypingMessage />}
-
           <div ref={messagesEndRef}></div>
         </div>
 

@@ -170,16 +170,17 @@
 }
 
 .message-user .message-content {
-  color: #ffffff;
+  color: #1c2501;
+
   background: linear-gradient(
     135deg,
-    #0a380e 0%,
-    #256b0d 60%,
-    #32810d 100%
+    rgba(50, 129, 13, 0.6),
+    rgba(122, 195, 2, 0.6)
   );
-  border: 1px solid #131901;
+
+  border: 0.1px solid rgba(10, 56, 14, 0.6);
   border-bottom-right-radius: 6px;
-  box-shadow: 0 5px 16px rgba(10, 56, 14, 0.12);
+  box-shadow: 0 5px 16px rgba(50, 129, 13, 0.2);
 }
 
 .message-content p {

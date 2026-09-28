@@ -14,14 +14,10 @@ export function createConversationId() {
 
 export function loadConversationId() {
   const savedId = localStorage.getItem(CONVERSATION_KEY);
-
-  if (savedId) {
-    return savedId;
-  }
+  if (savedId) return savedId;
 
   const newId = createConversationId();
   localStorage.setItem(CONVERSATION_KEY, newId);
-
   return newId;
 }
 
@@ -31,9 +27,7 @@ export function saveConversationId(conversationId) {
 
 export function loadMessages() {
   try {
-    const savedMessages = JSON.parse(
-      localStorage.getItem(MESSAGES_KEY)
-    );
+    const savedMessages = JSON.parse(localStorage.getItem(MESSAGES_KEY));
 
     if (Array.isArray(savedMessages) && savedMessages.length) {
       return savedMessages;
@@ -46,8 +40,5 @@ export function loadMessages() {
 }
 
 export function saveMessages(messages) {
-  localStorage.setItem(
-    MESSAGES_KEY,
-    JSON.stringify(messages)
-  );
+  localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
 }

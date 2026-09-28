@@ -9,10 +9,7 @@ function ChatHeader({ onNewConversation }) {
           className="brand-logo"
           alt="POF Planty of Food"
         />
-
-        <p className="brand-subtitle">
-          Assistente ricette plant-based
-        </p>
+        <p className="brand-subtitle">Assistente ricette plant-based</p>
       </div>
 
       <button
