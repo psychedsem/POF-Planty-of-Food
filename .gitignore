@@ -24,3 +24,5 @@ Thumbs.db
 
 # Local recipe cache
 server/data/recipes.json
+# Firebase local cache
+client/.firebase/
