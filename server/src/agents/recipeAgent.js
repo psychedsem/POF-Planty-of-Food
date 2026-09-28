@@ -4,7 +4,7 @@ import { recipeSearchTool } from "../tools/recipeSearchTool.js";
 import { withGroqRetry } from "../utils/groqRetry.js";
 
 const model = new ChatGroq({
-  model: "qwen/qwen3.8-27b",
+  model: "openai/gpt-oss-20b",
   apiKey: process.env.GROQ_API_KEY,
   temperature: 0,
 });
@@ -16,6 +16,9 @@ Regole:
 - Aiuta l'utente a trovare ricette adatte alle sue richieste.
 - Usa il tool search_recipes solo quando la richiesta contiene informazioni sufficienti per effettuare una ricerca utile.
 - Se la richiesta è troppo vaga o incompleta, non usare il tool e fai una breve domanda di chiarimento.
+- Se la richiesta contiene informazioni sufficienti per cercare una ricetta, devi usare search_recipes prima di rispondere.
+- Non proporre mai una nuova ricetta senza aver prima usato search_recipes nella stessa richiesta.
+- Se non usi search_recipes, puoi soltanto chiedere un chiarimento oppure rispondere a un follow-up che non richiede una nuova ricerca.
 - Quando usi search_recipes, passa sempre il campo query come stringa valida secondo lo schema del tool.
 - Dopo aver usato search_recipes, usa esclusivamente i dati restituiti dal database.
 - Non inventare ricette, ingredienti, istruzioni, proprietà o caratteristiche.

@@ -25,7 +25,11 @@ export async function upsertRecipe(recipe, embedding) {
   return String(id);
 }
 
-export async function searchRecipes(embedding, topK = 3) {
+export async function searchRecipes(
+  embedding,
+  topK = 3,
+  minScore = 0.6
+) {
   const result = await index.query({
     vector: embedding,
     topK,
@@ -33,5 +37,7 @@ export async function searchRecipes(embedding, topK = 3) {
     includeValues: false,
   });
 
-  return result.matches;
+  return result.matches.filter(
+    (match) => match.score >= minScore
+  );
 }
